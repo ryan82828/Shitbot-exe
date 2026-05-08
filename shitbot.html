@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShitBot.exe — IA sem filtro</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080808;
+  --surface: #0f0f0f;
+  --surface2: #141414;
+  --border: #1f1f1f;
+  --border2: #2a2a2a;
+  --accent: #ff2d55;
+  --accent2: #00ff88;
+  --accent3: #ffcc00;
+  --text: #e2e2e2;
+  --muted: #484848;
+  --code-bg: #0d1117;
+  --user-bubble: #111827;
+  --bot-bubble: #0a1a0f;
+  --sidebar-w: 240px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; overflow:hidden; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Mono', monospace;
+  display: flex;
+}
+body::after {
+  content:''; position:fixed; inset:0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events:none; z-index:9999; opacity:.5;
+}
+
+/* SIDEBAR */
+#sidebar {
+  width: var(--sidebar-w); min-width: var(--sidebar-w);
+  background: var(--surface); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; height: 100vh;
+  transition: transform .25s ease; z-index:100; flex-shrink:0;
+}
+.sidebar-header {
+  padding:16px 14px 12px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:8px;
+}
+.logo {
+  font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:3px;
+  color:var(--accent); text-shadow:0 0 15px rgba(255,45,85,.4);
+  animation:flicker 7s infinite; flex:1;
+}
+.logo span { color:var(--accent2); }
+@keyframes flicker { 0%,94%,100%{opacity:1} 95%{opacity:.5} 96%{opacity:1} 97%{opacity:.2} 99%{opacity:1} }
+.new-chat-btn {
+  padding:5px 10px; background:transparent; border:1px solid var(--border2);
+  color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:10px;
+  cursor:pointer; letter-spacing:1px; transition:all .2s; white-space:nowrap;
+}
+.close-sidebar-btn {
+  width:28px; height:28px;
+  background:transparent; border:1px solid var(--border2);
+  color:var(--muted); cursor:pointer; font-size:12px;
+  transition:all .2s; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+}
+.close-sidebar-btn:hover { border-color:var(--accent); color:var(--accent); }
+.sidebar-label { padding:12px 14px 6px; font-size:9px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; }
+#conv-list { flex:1; overflow-y:auto; padding:4px 8px; }
+#conv-list::-webkit-scrollbar { width:3px; }
+#conv-list::-webkit-scrollbar-thumb { background:var(--border2); }
+.conv-item {
+  padding:8px 10px; font-size:11px; cursor:pointer; color:var(--muted);
+  border:1px solid transparent; transition:all .15s;
+  display:flex; align-items:center; gap:6px; margin-bottom:2px;
+}
+.conv-item:hover { background:var(--surface2); color:var(--text); border-color:var(--border); }
+.conv-item.active { background:var(--surface2); color:var(--text); border-color:var(--border2); }
+.conv-title { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.del-btn { opacity:0; background:none; border:none; color:var(--accent); cursor:pointer; font-size:12px; padding:0 2px; transition:opacity .15s; }
+.conv-item:hover .del-btn { opacity:1; }
+.sidebar-footer { padding:12px 14px; border-top:1px solid var(--border); font-size:9px; color:var(--muted); letter-spacing:1px; }
+
+/* MAIN */
+#main { flex:1; display:flex; flex-direction:column; height:100vh; min-width:0; }
+
+/* TOPBAR */
+#topbar {
+  display:flex; align-items:center; gap:10px; padding:11px 18px;
+  border-bottom:1px solid var(--border); background:var(--surface);
+  flex-shrink:0; position:relative;
+}
+#topbar::after {
+  content:''; position:absolute; bottom:-2px; left:0; width:100%; height:1px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent3),var(--accent));
+  background-size:300% 100%; animation:shimmer 3s linear infinite;
+}
+@keyframes shimmer { 0%{background-position:0%} 100%{background-position:300%} }
+#menu-btn { display:none; background:none; border:none; color:var(--muted); font-size:18px; cursor:pointer; padding:2px 6px; }
+.status-dot {
+  width:7px; height:7px; border-radius:50%;
+  background:var(--accent2); box-shadow:0 0 7px var(--accent2);
+  animation:pulse 2s ease-in-out infinite; flex-shrink:0;
+}
+@keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.5);opacity:.6} }
+#chat-title { font-size:12px; color:var(--muted); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.model-tag { padding:3px 8px; border:1px solid var(--border2); font-size:9px; color:var(--muted); letter-spacing:.5px; white-space:nowrap; }
+
+/* CHAT */
+#chat { flex:1; overflow-y:auto; padding:20px 18px; display:flex; flex-direction:column; gap:18px; scroll-behavior:smooth; }
+#chat::-webkit-scrollbar { width:3px; }
+#chat::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+
+/* WELCOME */
+.welcome { text-align:center; padding:50px 20px 30px; display:flex; flex-direction:column; align-items:center; gap:14px; }
+.welcome-ascii { font-size:9px; line-height:1.3; color:rgba(255,45,85,.3); white-space:pre; }
+.welcome h2 { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:4px; }
+.welcome p { font-size:11px; color:var(--muted); max-width:380px; line-height:1.9; }
+.chips { display:flex; flex-wrap:wrap; gap:7px; justify-content:center; margin-top:6px; }
+.chip { padding:6px 12px; border:1px solid var(--border2); font-size:10px; color:var(--muted); cursor:pointer; font-family:'IBM Plex Mono',monospace; transition:all .2s; letter-spacing:.5px; }
+.chip:hover { border-color:var(--accent); color:var(--accent); background:rgba(255,45,85,.04); }
+
+/* MESSAGES */
+.message { display:flex; flex-direction:column; gap:5px; max-width:82%; animation:slideIn .25s ease-out; }
+@keyframes slideIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.message.user { align-self:flex-end; align-items:flex-end; }
+.message.bot  { align-self:flex-start; align-items:flex-start; }
+.msg-label { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+.message.user .msg-label { color:rgba(255,45,85,.55); }
+.message.bot  .msg-label { color:rgba(0,255,136,.55); }
+.bubble { padding:11px 15px; font-size:12.5px; line-height:1.75; }
+.message.user .bubble { background:var(--user-bubble); border:1px solid rgba(255,45,85,.25); border-right:3px solid var(--accent); }
+.message.bot .bubble  { background:var(--bot-bubble); border:1px solid rgba(0,255,136,.15); border-left:3px solid var(--accent2); }
+
+.attached-img { max-width:240px; max-height:180px; border:1px solid var(--border2); display:block; margin-bottom:6px; }
+.attached-file { display:inline-flex; align-items:center; gap:6px; padding:5px 9px; background:var(--surface2); border:1px solid var(--border2); font-size:10px; color:var(--muted); margin-bottom:6px; }
+
+/* CODE */
+.code-block { margin:8px 0; border:1px solid var(--border); overflow:hidden; background:var(--code-bg); }
+.code-header { display:flex; justify-content:space-between; align-items:center; padding:5px 12px; background:#161b22; border-bottom:1px solid var(--border); }
+.code-lang { font-size:9px; color:var(--accent3); letter-spacing:1px; text-transform:uppercase; }
+.copy-btn { font-family:'IBM Plex Mono',monospace; font-size:9px; padding:2px 8px; background:transparent; border:1px solid var(--border); color:var(--muted); cursor:pointer; letter-spacing:1px; transition:all .2s; }
+.copy-btn:hover { border-color:var(--accent2); color:var(--accent2); }
+pre { padding:13px; overflow-x:auto; font-family:'IBM Plex Mono',monospace; font-size:11.5px; line-height:1.65; color:#c9d1d9; }
+pre::-webkit-scrollbar { height:2px; }
+pre::-webkit-scrollbar-thumb { background:var(--border2); }
+
+/* TYPING */
+.typing { display:flex; align-items:center; gap:4px; padding:11px 15px; background:var(--bot-bubble); border:1px solid rgba(0,255,136,.15); border-left:3px solid var(--accent2); width:fit-content; }
+.typing span { width:5px; height:5px; background:var(--accent2); border-radius:50%; animation:bounce 1.2s ease-in-out infinite; }
+.typing span:nth-child(2){animation-delay:.2s} .typing span:nth-child(3){animation-delay:.4s}
+@keyframes bounce { 0%,60%,100%{transform:translateY(0);opacity:.4} 30%{transform:translateY(-5px);opacity:1} }
+
+/* INPUT AREA */
+#input-area { padding:12px 16px; border-top:1px solid var(--border); background:var(--surface); flex-shrink:0; }
+#attach-bar { display:none; flex-wrap:wrap; gap:6px; padding-bottom:8px; }
+.attach-preview { position:relative; display:inline-flex; align-items:center; gap:5px; background:var(--surface2); border:1px solid var(--border2); padding:4px 8px; font-size:10px; color:var(--muted); max-width:180px; }
+.attach-preview img { width:32px; height:32px; object-fit:cover; }
+.rm-attach { background:none; border:none; color:var(--accent); cursor:pointer; font-size:13px; line-height:1; padding:0 2px; flex-shrink:0; }
+#input-row { display:flex; gap:8px; align-items:flex-end; }
+.icon-btn { width:38px; height:38px; background:transparent; border:1px solid var(--border2); color:var(--muted); cursor:pointer; font-size:15px; transition:all .2s; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+.icon-btn:hover { border-color:var(--accent2); color:var(--accent2); }
+#user-input { flex:1; background:var(--bg); border:1px solid var(--border2); padding:9px 13px; color:var(--text); font-family:'IBM Plex Mono',monospace; font-size:12.5px; resize:none; min-height:38px; max-height:130px; line-height:1.5; outline:none; transition:border-color .2s; }
+#user-input:focus { border-color:rgba(255,45,85,.45); }
+#user-input::placeholder { color:var(--muted); }
+#send-btn { padding:0 18px; height:38px; background:var(--accent); border:none; color:#fff; font-family:'Bebas Neue',sans-serif; font-size:15px; letter-spacing:2px; cursor:pointer; transition:all .2s; flex-shrink:0; }
+#send-btn:hover { background:#ff0033; box-shadow:0 0 14px rgba(255,45,85,.45); }
+#send-btn:disabled { opacity:.35; cursor:not-allowed; box-shadow:none; }
+#footer-hint { padding:5px 16px 8px; font-size:9px; color:var(--muted); letter-spacing:.8px; text-align:center; background:var(--surface); }
+.error-msg { color:var(--accent); font-size:11.5px; }
+
+/* GENERATED IMAGE */
+.gen-img-wrap {
+  margin: 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gen-img-wrap img {
+  max-width: 320px;
+  width: 100%;
+  border: 1px solid var(--border2);
+  display: block;
+  background: var(--surface2);
+  min-height: 80px;
+}
+.gen-img-wrap img.loading-img {
+  filter: blur(8px);
+  animation: imgpulse 1.5s ease-in-out infinite;
+}
+@keyframes imgpulse { 0%,100%{opacity:.4} 50%{opacity:.8} }
+.img-actions {
+  display: flex;
+  gap: 6px;
+}
+.img-dl-btn {
+  font-family:'IBM Plex Mono',monospace; font-size:9px;
+  padding:3px 10px; background:transparent;
+  border:1px solid var(--border2); color:var(--muted);
+  cursor:pointer; letter-spacing:1px; transition:all .2s;
+}
+.img-dl-btn:hover { border-color:var(--accent3); color:var(--accent3); }
+
+/* DRAG OVER */
+body.dragover #main { outline:2px dashed var(--accent2); outline-offset:-4px; }
+
+@media(max-width:640px){
+  #sidebar { position:fixed; top:0; left:0; height:100vh; transform:translateX(-100%); }
+  #sidebar.open { transform:translateX(0); box-shadow:4px 0 20px rgba(0,0,0,.6); }
+  #menu-btn { display:block; }
+  .message { max-width:95%; }
+}
+
+/* ══ ACCESS SCREEN ══ */
+#access-screen {
+  position:fixed; inset:0; background:var(--bg);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  z-index:10000; gap:28px;
+}
+.access-logo {
+  font-family:'Bebas Neue',sans-serif; font-size:48px; letter-spacing:6px;
+  color:var(--accent); text-shadow:0 0 30px rgba(255,45,85,.5);
+  animation:flicker 7s infinite;
+}
+.access-logo span { color:var(--accent2); }
+.access-box {
+  display:flex; flex-direction:column; gap:12px;
+  width:320px;
+}
+.access-box input {
+  background:var(--surface); border:1px solid var(--border2);
+  padding:12px 16px; color:var(--text);
+  font-family:'IBM Plex Mono',monospace; font-size:13px;
+  outline:none; letter-spacing:2px; text-align:center;
+  transition:border-color .2s;
+}
+.access-box input:focus { border-color:var(--accent2); }
+.access-box input::placeholder { color:var(--muted); letter-spacing:1px; }
+.access-enter-btn {
+  padding:12px; background:var(--accent2); border:none;
+  color:#000; font-family:'Bebas Neue',sans-serif;
+  font-size:18px; letter-spacing:3px; cursor:pointer;
+  transition:all .2s;
+}
+.access-enter-btn:hover { background:#00cc6a; box-shadow:0 0 20px rgba(0,255,136,.3); }
+.access-error { font-size:11px; color:var(--accent); text-align:center; letter-spacing:1px; min-height:16px; }
+.access-footer { font-size:9px; color:var(--muted); letter-spacing:1px; text-align:center; }
+.admin-link {
+  font-size:9px; color:var(--muted); letter-spacing:1px;
+  cursor:pointer; text-decoration:none; background:none; border:none;
+  font-family:'IBM Plex Mono',monospace; padding:0;
+  opacity:.4; transition:opacity .2s;
+}
+.admin-link:hover { opacity:1; color:var(--accent); }
+
+/* ══ OVERLAY MODAL (admin login + admin panel) ══ */
+#overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,.85);
+  display:none; align-items:center; justify-content:center;
+  z-index:10001;
+}
+#overlay.open { display:flex; }
+.modal {
+  background:var(--surface); border:1px solid var(--border2);
+  width:480px; max-width:95vw; max-height:90vh;
+  display:flex; flex-direction:column;
+  animation:slideIn .2s ease-out;
+}
+.modal-header {
+  display:flex; align-items:center; padding:14px 18px;
+  border-bottom:1px solid var(--border); gap:10px;
+}
+.modal-header h3 {
+  font-family:'Bebas Neue',sans-serif; font-size:20px;
+  letter-spacing:3px; color:var(--accent); flex:1;
+}
+.modal-close {
+  background:none; border:1px solid var(--border2); color:var(--muted);
+  width:28px; height:28px; cursor:pointer; font-size:12px;
+  transition:all .2s; display:flex; align-items:center; justify-content:center;
+}
+.modal-close:hover { border-color:var(--accent); color:var(--accent); }
+.modal-body { padding:20px 18px; overflow-y:auto; display:flex; flex-direction:column; gap:14px; }
+
+/* Admin login form */
+.admin-field { display:flex; flex-direction:column; gap:6px; }
+.admin-field label { font-size:9px; color:var(--muted); letter-spacing:2px; text-transform:uppercase; }
+.admin-field input {
+  background:var(--bg); border:1px solid var(--border2);
+  padding:10px 14px; color:var(--text);
+  font-family:'IBM Plex Mono',monospace; font-size:13px;
+  outline:none; transition:border-color .2s;
+}
+.admin-field input:focus { border-color:var(--accent); }
+.admin-btn {
+  padding:10px 18px; background:var(--accent); border:none;
+  color:#fff; font-family:'Bebas Neue',sans-serif;
+  font-size:16px; letter-spacing:2px; cursor:pointer; transition:all .2s;
+}
+.admin-btn:hover { background:#ff0033; }
+.admin-btn.secondary {
+  background:transparent; border:1px solid var(--border2);
+  color:var(--muted); font-size:14px;
+}
+.admin-btn.secondary:hover { border-color:var(--accent2); color:var(--accent2); background:transparent; }
+.admin-btn.danger { background:#300; border:1px solid var(--accent); color:var(--accent); font-size:12px; padding:6px 12px; }
+.admin-btn.danger:hover { background:var(--accent); color:#fff; }
+
+/* Code list */
+.code-list { display:flex; flex-direction:column; gap:6px; }
+.code-item {
+  display:flex; align-items:center; gap:8px;
+  padding:9px 12px; background:var(--bg);
+  border:1px solid var(--border); font-size:11px;
+}
+.code-item .code-val { font-size:13px; color:var(--accent2); letter-spacing:2px; flex:1; font-family:'IBM Plex Mono',monospace; }
+.code-item .code-name { color:var(--muted); font-size:10px; }
+.code-item .code-exp {
+  font-size:9px; padding:2px 7px;
+  border:1px solid var(--border2); color:var(--muted); white-space:nowrap;
+}
+.code-item .code-exp.expired { border-color:var(--accent); color:var(--accent); }
+.code-item .code-exp.permanent { border-color:var(--accent2); color:var(--accent2); }
+
+/* Create code form */
+.create-form { display:flex; flex-direction:column; gap:10px; padding:14px; background:var(--bg); border:1px solid var(--border); }
+.create-form-title { font-size:9px; color:var(--muted); letter-spacing:2px; text-transform:uppercase; }
+.create-row { display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; }
+.create-form input[type=text] {
+  flex:1; min-width:100px;
+  background:var(--surface); border:1px solid var(--border2);
+  padding:8px 12px; color:var(--text);
+  font-family:'IBM Plex Mono',monospace; font-size:12px; outline:none;
+  transition:border-color .2s;
+}
+.create-form input[type=text]:focus { border-color:var(--accent2); }
+.validity-select {
+  background:var(--surface); border:1px solid var(--border2);
+  padding:8px 12px; color:var(--text);
+  font-family:'IBM Plex Mono',monospace; font-size:12px; outline:none; cursor:pointer;
+  transition:border-color .2s;
+}
+.validity-select:focus { border-color:var(--accent2); }
+.no-codes { font-size:11px; color:var(--muted); text-align:center; padding:20px; }
+</style>
+</head>
+<body>
+
+<!-- ACCESS SCREEN -->
+<div id="access-screen">
+  <div class="access-logo">Shit<span>Bot</span>.exe</div>
+  <div class="access-box">
+    <input type="text" id="access-code-input" placeholder="INSIRA SEU CÓDIGO" maxlength="32" autocomplete="off" onkeydown="if(event.key==='Enter')checkAccessCode()">
+    <button class="access-enter-btn" onclick="checkAccessCode()">ENTRAR</button>
+    <div class="access-error" id="access-error"></div>
+  </div>
+  <div class="access-footer">acesso restrito • código necessário</div>
+  <button class="admin-link" onclick="openAdminLogin()">admin</button>
+</div>
+
+<!-- OVERLAY: admin login + admin panel -->
+<div id="overlay">
+  <!-- ADMIN LOGIN -->
+  <div class="modal" id="modal-login">
+    <div class="modal-header">
+      <h3>// ADMIN</h3>
+      <button class="modal-close" onclick="closeOverlay()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="admin-field">
+        <label>usuário</label>
+        <input type="text" id="admin-user" placeholder="admin" autocomplete="off">
+      </div>
+      <div class="admin-field">
+        <label>senha</label>
+        <input type="password" id="admin-pass" placeholder="••••" onkeydown="if(event.key==='Enter')doAdminLogin()">
+      </div>
+      <div class="access-error" id="admin-error"></div>
+      <button class="admin-btn" onclick="doAdminLogin()">ENTRAR</button>
+    </div>
+  </div>
+
+  <!-- ADMIN PANEL -->
+  <div class="modal" id="modal-panel" style="display:none">
+    <div class="modal-header">
+      <h3>// PAINEL ADMIN</h3>
+      <button class="modal-close" onclick="closeOverlay()">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Create code form -->
+      <div class="create-form">
+        <div class="create-form-title">// criar novo código</div>
+        <div class="create-row">
+          <input type="text" id="new-code-name" placeholder="nome (ex: João)" maxlength="30">
+          <input type="text" id="new-code-val" placeholder="código (deixe vazio = gerar)" maxlength="20">
+        </div>
+        <div class="create-row">
+          <select class="validity-select" id="new-code-validity">
+            <option value="24h">⏱ 24 horas</option>
+            <option value="30d">📅 30 dias</option>
+            <option value="permanent" selected>♾ permanente</option>
+          </select>
+          <button class="admin-btn" onclick="createCode()">CRIAR CÓDIGO</button>
+        </div>
+        <div class="access-error" id="create-error"></div>
+      </div>
+
+      <!-- Codes list -->
+      <div class="sidebar-label" style="padding:8px 0 4px">// códigos ativos</div>
+      <div class="code-list" id="code-list"></div>
+    </div>
+  </div>
+</div>
+
+<div id="sidebar">
+  <div class="sidebar-header">
+    <div class="logo">Shit<span>Bot</span></div>
+    <button class="new-chat-btn" onclick="newChat()">+ NOVO</button>
+    <button class="close-sidebar-btn" onclick="toggleSidebar()" title="Fechar">✕</button>
+  </div>
+  <div class="sidebar-label">// conversas salvas</div>
+  <div id="conv-list"></div>
+  <div class="sidebar-footer">💾 salvo no navegador</div>
+</div>
+
+<div id="main">
+  <div id="topbar">
+    <button id="menu-btn" onclick="toggleSidebar()">☰</button>
+    <div class="status-dot"></div>
+    <div id="chat-title">nova conversa</div>
+    <span class="model-tag" id="model-tag">deepseek-v3:free</span>
+    <button onclick="logout()" title="Sair" style="background:none;border:1px solid var(--border2);color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:9px;padding:4px 10px;cursor:pointer;letter-spacing:1px;transition:all .2s;white-space:nowrap" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--muted)'">SAIR</button>
+  </div>
+
+  <div id="chat">
+    <div class="welcome" id="welcome">
+      <div class="welcome-ascii"> ██████╗██╗  ██╗██╗████████╗
+██╔════╝██║  ██║██║╚══██╔══╝
+╚█████╗ ███████║██║   ██║   
+ ╚═══██╗██╔══██║██║   ██║   
+██████╔╝██║  ██║██║   ██║   
+╚═════╝ ╚═╝  ╚═╝╚═╝   ╚═╝  </div>
+      <h2>Bem-vindo ao ShitBot</h2>
+      <p>IA sem filtro que escreve código de verdade, fala o que pensa e não enrola. Manda texto, imagem ou arquivo.</p>
+      <div class="chips">
+        <div class="chip" onclick="fillInput('Cria uma API REST completa em Node.js com Express e autenticação JWT')">API Node.js + JWT</div>
+        <div class="chip" onclick="fillInput('Faz um scraper em Python pra pegar preços de produto no Mercado Livre')">scraper Python</div>
+        <div class="chip" onclick="fillInput('Explica ponteiros em C como se eu tivesse 5 anos')">ponteiros em C</div>
+        <div class="chip" onclick="fillInput('Qual a melhor stack pra backend em 2025?')">melhor stack?</div>
+        <div class="chip" onclick="fillInput('Cria um script bash pra automatizar deploy com git')">deploy bash</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="input-area">
+    <div id="attach-bar"></div>
+    <div id="input-row">
+      <button class="icon-btn" title="Anexar qualquer arquivo" onclick="document.getElementById('file-input').click()">📎</button>
+      <input type="file" id="file-input" accept="*/*" multiple style="display:none" onchange="handleFiles(this.files)">
+      <textarea id="user-input" placeholder="manda ver... código, dúvida, arquivo, imagem..." rows="1"></textarea>
+      <button id="send-btn" onclick="sendMessage()">ENVIAR</button>
+    </div>
+  </div>
+  <div id="footer-hint">ENTER enviar • SHIFT+ENTER nova linha • 📎 ou arraste arquivos/imagens</div>
+</div>
+
+<script>
+const API_KEY = "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";
+const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+
+// Melhores modelos gratuitos em ordem de preferência
+const MODELS = [
+  "deepseek/deepseek-v3:free",              // DeepSeek V3 — melhor free disponível
+  "deepseek/deepseek-r1:free",              // R1 com raciocínio
+  "meta-llama/llama-3.3-70b-instruct:free", // Llama 70B
+  "openrouter/free",                         // roteador automático como último recurso
+];
+
+const SYSTEM_PROMPT = `Você é o ShitBot — uma IA de programação sem filtro, irreverente e direta ao ponto.
+
+PERSONALIDADE: Fala palavrões naturalmente ("porra", "merda", "caralho", "que bagulho") de forma humorística. É tipo aquele dev sênior genial e mal-humorado que todo mundo ama pedir ajuda.
+
+CÓDIGO: Expert em programação. Entrega código REAL, funcional, bem comentado em qualquer linguagem. SEMPRE use blocos \`\`\`linguagem para qualquer código — o usuário tem um botão de download em cada bloco pra salvar direto como arquivo. Na primeira linha do código, coloque um comentário com o nome do arquivo sugerido, ex: \`// index.js\` ou \`# script.py\`.
+
+IMAGENS/ARQUIVOS: Quando receber imagens ou arquivos, analisa o conteúdo com comentários diretos e úteis.
+
+GERAÇÃO DE IMAGEM: Quando o usuário pedir pra gerar/criar/desenhar uma imagem, responda EXATAMENTE neste formato (nada antes, nada depois da tag):
+<GERAR_IMAGEM>prompt detalhado em inglês aqui</GERAR_IMAGEM>
+Depois da tag coloque um comentário curto e irreverente sobre a imagem. O prompt deve ser bem descritivo em inglês para gerar boas imagens.
+
+ESTILO: Direto ao ponto. Zero enrolação corporativa. Sem "Claro! Com prazer!" — vai logo pro assunto.
+
+OPINIÕES: Tem opiniões fortes sobre tecnologia e não tem medo de compartilhar.
+
+LIMITES: Recusa coisas ilegais com sarcasmo. Não faz nada prejudicial de verdade.
+
+Responda SEMPRE em português brasileiro.`;
+
+// ── STATE ──────────────────────────────────────────────
+let conversations = {};
+try { conversations = JSON.parse(localStorage.getItem('shitbot_convs') || '{}'); } catch(e) {}
+let currentId = null;
+let isLoading = false;
+let attachments = [];
+
+// ── UTILS ──────────────────────────────────────────────
+function escapeHtml(s) {
+  if (typeof s !== 'string') return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function saveConversations() {
+  try { localStorage.setItem('shitbot_convs', JSON.stringify(conversations)); } catch(e) {}
+}
+
+// ── SIDEBAR ────────────────────────────────────────────
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+function renderSidebar() {
+  const list = document.getElementById('conv-list');
+  list.innerHTML = '';
+  const ids = Object.keys(conversations).sort((a,b) => Number(b)-Number(a));
+  if (!ids.length) {
+    list.innerHTML = '<div style="padding:16px;font-size:10px;color:var(--muted);text-align:center;line-height:1.8">nenhuma conversa<br>ainda não, porra</div>';
+    return;
+  }
+  ids.forEach(id => {
+    const conv = conversations[id];
+    const div = document.createElement('div');
+    div.className = 'conv-item' + (id === currentId ? ' active' : '');
+    div.innerHTML = `<span class="conv-title">${escapeHtml(conv.title||'sem título')}</span><button class="del-btn" onclick="deleteConv(event,'${id}')">✕</button>`;
+    div.onclick = (e) => { if (!e.target.classList.contains('del-btn')) loadConv(id); };
+    list.appendChild(div);
+  });
+}
+
+function deleteConv(e, id) {
+  e.stopPropagation();
+  delete conversations[id];
+  saveConversations();
+  if (currentId === id) newChat();
+  else renderSidebar();
+}
+
+function loadConv(id) {
+  currentId = id;
+  const conv = conversations[id];
+  document.getElementById('chat-title').textContent = conv.title || 'sem título';
+  renderSidebar();
+  rebuildChat(conv.messages || []);
+  document.getElementById('sidebar').classList.remove('open');
+}
+
+function rebuildChat(messages) {
+  const chat = document.getElementById('chat');
+  chat.innerHTML = '';
+  messages.forEach(m => {
+    if (m.role === 'user') renderUserMessage(m.display || '', m.attachments || []);
+    else if (m.role === 'assistant') renderBotMessage(m.content);
+  });
+}
+
+function newChat() {
+  currentId = null;
+  attachments = [];
+  renderAttachBar();
+  document.getElementById('chat').innerHTML = `
+    <div class="welcome" id="welcome">
+      <div class="welcome-ascii"> ██████╗██╗  ██╗██╗████████╗
+██╔════╝██║  ██║██║╚══██╔══╝
+╚█████╗ ███████║██║   ██║   
+ ╚═══██╗██╔══██║██║   ██║   
+██████╔╝██║  ██║██║   ██║   
+╚═════╝ ╚═╝  ╚═╝╚═╝   ╚═╝  </div>
+      <h2>Bem-vindo ao ShitBot</h2>
+      <p>IA sem filtro que escreve código de verdade, fala o que pensa e não enrola.</p>
+      <div class="chips">
+        <div class="chip" onclick="fillInput('Cria uma API REST completa em Node.js com Express e autenticação JWT')">API Node.js</div>
+        <div class="chip" onclick="fillInput('Faz um scraper em Python pra pegar preços de produto')">scraper Python</div>
+        <div class="chip" onclick="fillInput('Explica ponteiros em C como se eu tivesse 5 anos')">ponteiros em C</div>
+        <div class="chip" onclick="fillInput('Qual a melhor stack pra backend em 2025?')">melhor stack?</div>
+      </div>
+    </div>`;
+  document.getElementById('chat-title').textContent = 'nova conversa';
+  renderSidebar();
+  document.getElementById('sidebar').classList.remove('open');
+}
+
+// ── FILE HANDLING ──────────────────────────────────────
+const TEXT_EXTS = /\.(txt|js|ts|jsx|tsx|py|json|csv|html|css|md|xml|yaml|yml|sh|bash|cpp|c|h|java|go|rs|php|rb|swift|kt|sql|env|toml|ini|log|diff|patch|dockerfile|gitignore)$/i;
+
+function handleFiles(files) {
+  Array.from(files).forEach(file => {
+    const isImage = file.type.startsWith('image/');
+    const isText = file.type.startsWith('text/') || TEXT_EXTS.test(file.name) || file.type === 'application/json';
+
+    // Always read as base64 DataURL
+    const b64Reader = new FileReader();
+    b64Reader.onload = (e) => {
+      const dataUrl = e.target.result;
+      const base64 = dataUrl.split(',')[1];
+
+      if (isImage) {
+        attachments.push({ type:'image', name:file.name, base64, mimeType:file.type });
+        renderAttachBar();
+      } else if (isText) {
+        // Also read as text so we can send content to the AI
+        const textReader = new FileReader();
+        textReader.onload = (ev) => {
+          attachments.push({ type:'file', name:file.name, base64, mimeType:file.type||'text/plain', text:ev.target.result.slice(0,15000) });
+          renderAttachBar();
+        };
+        textReader.onerror = () => {
+          attachments.push({ type:'file', name:file.name, base64, mimeType:file.type||'application/octet-stream', text:null });
+          renderAttachBar();
+        };
+        textReader.readAsText(file);
+      } else {
+        // Binary file (pdf, zip, etc) — send name + type info to AI
+        attachments.push({ type:'file', name:file.name, base64, mimeType:file.type||'application/octet-stream', text:null });
+        renderAttachBar();
+      }
+    };
+    b64Reader.readAsDataURL(file);
+  });
+  document.getElementById('file-input').value = '';
+}
+
+function renderAttachBar() {
+  const bar = document.getElementById('attach-bar');
+  bar.innerHTML = '';
+  if (!attachments.length) { bar.style.display='none'; return; }
+  bar.style.display = 'flex';
+  attachments.forEach((att, i) => {
+    const div = document.createElement('div');
+    div.className = 'attach-preview';
+    if (att.type === 'image') {
+      div.innerHTML = `<img src="data:${att.mimeType};base64,${att.base64}"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px;font-size:9px">${escapeHtml(att.name)}</span><button class="rm-attach" onclick="removeAttach(${i})">✕</button>`;
+    } else {
+      div.innerHTML = `<span>📄</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px">${escapeHtml(att.name)}</span><button class="rm-attach" onclick="removeAttach(${i})">✕</button>`;
+    }
+    bar.appendChild(div);
+  });
+}
+
+function removeAttach(i) { attachments.splice(i,1); renderAttachBar(); }
+
+// Drag and drop
+document.addEventListener('dragover', (e) => { e.preventDefault(); document.body.classList.add('dragover'); });
+document.addEventListener('dragleave', (e) => { if (!e.relatedTarget) document.body.classList.remove('dragover'); });
+document.addEventListener('drop', (e) => {
+  e.preventDefault();
+  document.body.classList.remove('dragover');
+  if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+});
+
+// ── RENDER MESSAGES ────────────────────────────────────
+function guessFilename(lang, code) {
+  const ext = { python:'py', javascript:'js', typescript:'ts', js:'js', ts:'ts', py:'py',
+    html:'html', css:'css', bash:'sh', shell:'sh', sh:'sh', json:'json', sql:'sql',
+    java:'java', cpp:'cpp', c:'c', go:'go', rust:'rs', php:'php', ruby:'rb',
+    swift:'swift', kotlin:'kt', yaml:'yml', xml:'xml', markdown:'md', md:'md' };
+  const e = ext[lang?.toLowerCase()] || 'txt';
+  // try to detect filename from first comment line
+  const firstLine = code.split('\n')[0];
+  const match = firstLine.match(/(?:\/\/|#|\/\*)\s*([\w.\-]+\.\w+)/);
+  return match ? match[1] : `arquivo.${e}`;
+}
+
+function downloadCode(btn) {
+  const block = btn.closest('.code-block');
+  const pre = block.querySelector('pre');
+  const lang = block.querySelector('.code-lang')?.textContent || '';
+  const code = pre.textContent;
+  const filename = guessFilename(lang, code);
+  const blob = new Blob([code], { type:'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+  btn.textContent='[ baixado! ]'; btn.style.color='var(--accent3)';
+  setTimeout(()=>{ btn.textContent='[ baixar ]'; btn.style.color=''; }, 2000);
+}
+
+function formatMessage(text) {
+  // Code blocks — with copy + download buttons
+  text = text.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
+    const l = lang || 'code';
+    return `<div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">${escapeHtml(l)}</span>
+        <div style="display:flex;gap:5px">
+          <button class="copy-btn" onclick="downloadCode(this)">[ baixar ]</button>
+          <button class="copy-btn" onclick="copyCode(this)">[ copiar ]</button>
+        </div>
+      </div>
+      <pre>${escapeHtml(code.trim())}</pre>
+    </div>`;
+  });
+  // Inline code
+  text = text.replace(/`([^`\n]+)`/g, '<code style="background:#1a1a2e;padding:1px 5px;color:#79c0ff;font-family:\'IBM Plex Mono\',monospace;font-size:11px;border-radius:2px">$1</code>');
+  // Bold
+  text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Italic
+  text = text.replace(/\*(.+?)\*/g, '<em style="color:#aaa">$1</em>');
+  // Newlines
+  text = text.replace(/\n/g, '<br>');
+  return text;
+}
+
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  navigator.clipboard.writeText(pre.textContent).then(() => {
+    btn.textContent='[ copiado! ]'; btn.style.color='var(--accent2)';
+    setTimeout(()=>{ btn.textContent='[ copiar ]'; btn.style.color=''; }, 2000);
+  });
+}
+
+function renderUserMessage(text, atts) {
+  const w = document.getElementById('welcome');
+  if (w) w.remove();
+  const chat = document.getElementById('chat');
+  const div = document.createElement('div');
+  div.className = 'message user';
+  let attachHtml = '';
+  (atts||[]).forEach(att => {
+    if (att.type==='image') attachHtml += `<img class="attached-img" src="data:${att.mimeType};base64,${att.base64}">`;
+    else attachHtml += `<div class="attached-file">📄 ${escapeHtml(att.name)}</div>`;
+  });
+  div.innerHTML = `<div class="msg-label">// VOCÊ</div><div class="bubble">${attachHtml}${escapeHtml(text)}</div>`;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+// ── IMAGE GENERATION (Pollinations.ai — free, no key) ──
+function buildPollinationsUrl(prompt) {
+  const encoded = encodeURIComponent(prompt);
+  return `https://image.pollinations.ai/prompt/${encoded}?width=768&height=768&nologo=true&enhance=true&model=flux&seed=${Math.floor(Math.random()*99999)}`;
+}
+
+function renderGeneratedImage(prompt, container) {
+  const url = buildPollinationsUrl(prompt);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'gen-img-wrap';
+
+  // Loading placeholder
+  const loadingDiv = document.createElement('div');
+  loadingDiv.style.cssText = 'width:320px;height:320px;background:var(--surface2);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;font-size:11px;color:var(--muted);';
+  loadingDiv.innerHTML = `<div class="typing"><span></span><span></span><span></span></div><span>gerando imagem...</span>`;
+  wrap.appendChild(loadingDiv);
+
+  const actions = document.createElement('div');
+  actions.className = 'img-actions';
+
+  const dlBtn = document.createElement('button');
+  dlBtn.className = 'img-dl-btn';
+  dlBtn.textContent = '[ baixar ]';
+  dlBtn.disabled = true;
+  dlBtn.style.opacity = '0.3';
+  actions.appendChild(dlBtn);
+
+  wrap.appendChild(actions);
+  container.appendChild(wrap);
+
+  // Load image
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.style.cssText = 'max-width:320px;width:100%;border:1px solid var(--border2);display:block;';
+  img.alt = prompt;
+
+  img.onload = () => {
+    loadingDiv.replaceWith(img);
+    dlBtn.disabled = false;
+    dlBtn.style.opacity = '1';
+
+    // Download via canvas (bypass CORS issue)
+    dlBtn.onclick = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        canvas.getContext('2d').drawImage(img, 0, 0);
+        canvas.toBlob(blob => {
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'shitbot-' + Date.now() + '.png';
+          a.click();
+          URL.revokeObjectURL(a.href);
+          dlBtn.textContent = '[ baixado! ]';
+          setTimeout(() => dlBtn.textContent = '[ baixar ]', 2000);
+        }, 'image/png');
+      } catch {
+        // fallback: open in new tab
+        window.open(url, '_blank');
+      }
+    };
+  };
+
+  img.onerror = () => {
+    loadingDiv.innerHTML = '<span style="color:var(--accent);font-size:11px">⚠ Pollinations falhou, tenta de novo</span>';
+    dlBtn.remove();
+  };
+
+  img.src = url;
+}
+
+function renderBotMessage(text) {
+  const chat = document.getElementById('chat');
+  const div = document.createElement('div');
+  div.className = 'message bot';
+
+  // Check for image generation tag
+  const imgMatch = text.match(/<GERAR_IMAGEM>([\s\S]*?)<\/GERAR_IMAGEM>/);
+  if (imgMatch) {
+    const prompt = imgMatch[1].trim();
+    const rest = text.replace(/<GERAR_IMAGEM>[\s\S]*?<\/GERAR_IMAGEM>/, '').trim();
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    renderGeneratedImage(prompt, bubble);
+    if (rest) bubble.innerHTML += formatMessage(rest);
+    div.innerHTML = '<div class="msg-label">// SHITBOT</div>';
+    div.appendChild(bubble);
+  } else {
+    div.innerHTML = `<div class="msg-label">// SHITBOT</div><div class="bubble">${formatMessage(text)}</div>`;
+  }
+
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function showTyping() {
+  const w = document.getElementById('welcome'); if(w) w.remove();
+  const chat = document.getElementById('chat');
+  const div = document.createElement('div');
+  div.className='message bot'; div.id='typing-indicator';
+  div.innerHTML=`<div class="msg-label">// SHITBOT</div><div class="typing"><span></span><span></span><span></span></div>`;
+  chat.appendChild(div); chat.scrollTop=chat.scrollHeight;
+}
+function removeTyping() { const t=document.getElementById('typing-indicator'); if(t) t.remove(); }
+
+// ── API ────────────────────────────────────────────────
+function buildMessages(history) {
+  const msgs = [{ role:'system', content:SYSTEM_PROMPT }];
+  history.forEach(m => {
+    if (m.role === 'user') {
+      const atts = m.attachments || [];
+      const hasImages = atts.some(a => a.type==='image');
+      if (atts.length > 0) {
+        const content = [];
+        atts.forEach(att => {
+          if (att.type==='image') {
+            content.push({ type:'image_url', image_url:{ url:`data:${att.mimeType};base64,${att.base64}` } });
+          } else if (att.text) {
+            content.push({ type:'text', text:`[Arquivo anexado: ${att.name}]\n\`\`\`\n${att.text}\n\`\`\`` });
+          }
+        });
+        if (m.display) content.push({ type:'text', text:m.display });
+        msgs.push({ role:'user', content });
+      } else {
+        msgs.push({ role:'user', content: m.display||m.content||'' });
+      }
+    } else if (m.role==='assistant') {
+      msgs.push({ role:'assistant', content:m.content });
+    }
+  });
+  return msgs;
+}
+
+async function callModel(model, messages) {
+  const res = await fetch(OPENROUTER_URL, {
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'Authorization':`Bearer ${API_KEY}`,
+      'HTTP-Referer':'https://shitbot.exe',
+      'X-Title':'ShitBot'
+    },
+    body: JSON.stringify({ model, messages, max_tokens:2048, temperature:1.0 })
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error?.message || JSON.stringify(data));
+  const reply = data.choices?.[0]?.message?.content;
+  if (!reply) throw new Error('Resposta vazia');
+  return { reply, usedModel: data.model || model };
+}
+
+// ── SEND ───────────────────────────────────────────────
+function fillInput(t) {
+  const inp = document.getElementById('user-input');
+  inp.value=t; inp.focus(); autoResize(inp);
+}
+
+function autoResize(el) {
+  el.style.height='auto';
+  el.style.height=Math.min(el.scrollHeight,130)+'px';
+}
+
+document.getElementById('user-input').addEventListener('input', function(){ autoResize(this); });
+document.getElementById('user-input').addEventListener('keydown', function(e){
+  if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+
+async function sendMessage() {
+  if (isLoading) return;
+  const inp = document.getElementById('user-input');
+  const text = inp.value.trim();
+  const currentAtts = [...attachments];
+  if (!text && !currentAtts.length) return;
+
+  inp.value=''; inp.style.height='auto';
+  attachments=[]; renderAttachBar();
+  isLoading=true;
+  document.getElementById('send-btn').disabled=true;
+
+  // Create new conversation if needed
+  if (!currentId) {
+    currentId = Date.now().toString();
+    const title = (text||currentAtts[0]?.name||'conversa').slice(0,42);
+    conversations[currentId] = { title, messages:[] };
+    saveConversations();
+    renderSidebar();
+    document.getElementById('chat-title').textContent = title;
+  }
+
+  const conv = conversations[currentId];
+  const userEntry = { role:'user', display:text, content:text, attachments:currentAtts };
+  conv.messages.push(userEntry);
+
+  renderUserMessage(text, currentAtts);
+  showTyping();
+
+  const apiMessages = buildMessages(conv.messages);
+  let reply=null, lastErr=null, usedModel=MODELS[0];
+
+  for (const model of MODELS) {
+    try {
+      const r = await callModel(model, apiMessages);
+      reply=r.reply; usedModel=r.usedModel; break;
+    } catch(err) { lastErr=err; }
+  }
+
+  removeTyping();
+
+  if (reply) {
+    conv.messages.push({ role:'assistant', content:reply });
+    saveConversations();
+    const tag = usedModel.split('/').pop()?.replace(':free','') || usedModel;
+    document.getElementById('model-tag').textContent = tag+':free';
+    renderBotMessage(reply);
+  } else {
+    const chat=document.getElementById('chat');
+    const errDiv=document.createElement('div');
+    errDiv.className='message bot';
+    errDiv.innerHTML=`<div class="msg-label">// SHITBOT</div><div class="bubble"><span class="error-msg">⚠ merda, deu erro: ${escapeHtml(lastErr?.message||'desconhecido')}</span></div>`;
+    chat.appendChild(errDiv); chat.scrollTop=chat.scrollHeight;
+    conv.messages.pop(); saveConversations();
+  }
+
+  isLoading=false;
+  document.getElementById('send-btn').disabled=false;
+  inp.focus();
+}
+
+// ── ACCESS SYSTEM ──────────────────────────────────────
+const ADMIN_USER = 'admin';
+const ADMIN_PASS = '5578';
+
+function getAccessCodes() {
+  try { return JSON.parse(localStorage.getItem('shitbot_codes') || '{}'); } catch { return {}; }
+}
+function saveAccessCodes(codes) {
+  localStorage.setItem('shitbot_codes', JSON.stringify(codes));
+}
+
+function genCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({length:8}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
+}
+
+function isCodeValid(entry) {
+  if (entry.validity === 'permanent') return true;
+  return Date.now() < entry.expiresAt;
+}
+
+function expiryLabel(entry) {
+  if (entry.validity === 'permanent') return { text:'permanente', cls:'permanent' };
+  const diff = entry.expiresAt - Date.now();
+  if (diff <= 0) return { text:'expirado', cls:'expired' };
+  if (diff < 3600000) return { text: Math.ceil(diff/60000)+'min', cls:'' };
+  if (diff < 86400000) return { text: Math.ceil(diff/3600000)+'h restantes', cls:'' };
+  return { text: Math.ceil(diff/86400000)+'d restantes', cls:'' };
+}
+
+function checkAccessCode() {
+  const val = document.getElementById('access-code-input').value.trim().toUpperCase();
+  const errEl = document.getElementById('access-error');
+  if (!val) { errEl.textContent = 'insira um código'; return; }
+  const codes = getAccessCodes();
+  const entry = codes[val];
+  if (!entry) { errEl.textContent = '⚠ código inválido'; return; }
+  if (!isCodeValid(entry)) { errEl.textContent = '⚠ código expirado'; return; }
+  // Grant access
+  sessionStorage.setItem('shitbot_access', val);
+  document.getElementById('access-screen').style.display = 'none';
+}
+
+function openAdminLogin() {
+  document.getElementById('modal-login').style.display = 'flex';
+  document.getElementById('modal-login').style.flexDirection = 'column';
+  document.getElementById('modal-panel').style.display = 'none';
+  document.getElementById('admin-error').textContent = '';
+  document.getElementById('overlay').classList.add('open');
+  setTimeout(() => document.getElementById('admin-user').focus(), 100);
+}
+
+function doAdminLogin() {
+  const u = document.getElementById('admin-user').value.trim();
+  const p = document.getElementById('admin-pass').value;
+  if (u === ADMIN_USER && p === ADMIN_PASS) {
+    document.getElementById('admin-pass').value = '';
+    document.getElementById('admin-user').value = '';
+    document.getElementById('modal-login').style.display = 'none';
+    document.getElementById('modal-panel').style.display = 'flex';
+    document.getElementById('modal-panel').style.flexDirection = 'column';
+    renderCodeList();
+  } else {
+    document.getElementById('admin-error').textContent = '⚠ credenciais erradas';
+  }
+}
+
+function closeOverlay() {
+  document.getElementById('overlay').classList.remove('open');
+  document.getElementById('admin-pass').value = '';
+  document.getElementById('admin-user').value = '';
+}
+
+function createCode() {
+  const name = document.getElementById('new-code-name').value.trim();
+  const customVal = document.getElementById('new-code-val').value.trim().toUpperCase();
+  const validity = document.getElementById('new-code-validity').value;
+  const errEl = document.getElementById('create-error');
+
+  if (!name) { errEl.textContent = '⚠ coloca um nome'; return; }
+  const code = customVal || genCode();
+  const codes = getAccessCodes();
+  if (codes[code]) { errEl.textContent = '⚠ código já existe'; return; }
+
+  let expiresAt = null;
+  if (validity === '24h') expiresAt = Date.now() + 86400000;
+  else if (validity === '30d') expiresAt = Date.now() + 86400000 * 30;
+
+  codes[code] = { name, validity, expiresAt, createdAt: Date.now() };
+  saveAccessCodes(codes);
+  errEl.textContent = '';
+  document.getElementById('new-code-name').value = '';
+  document.getElementById('new-code-val').value = '';
+  renderCodeList();
+}
+
+function deleteCode(code) {
+  const codes = getAccessCodes();
+  delete codes[code];
+  saveAccessCodes(codes);
+  renderCodeList();
+}
+
+function renderCodeList() {
+  const list = document.getElementById('code-list');
+  const codes = getAccessCodes();
+  const keys = Object.keys(codes).sort((a,b) => (codes[b].createdAt||0) - (codes[a].createdAt||0));
+  if (!keys.length) {
+    list.innerHTML = '<div class="no-codes">nenhum código criado ainda</div>';
+    return;
+  }
+  list.innerHTML = '';
+  keys.forEach(code => {
+    const entry = codes[code];
+    const { text, cls } = expiryLabel(entry);
+    const div = document.createElement('div');
+    div.className = 'code-item';
+    div.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:0">
+        <span class="code-val">${escapeHtml(code)}</span>
+        <span class="code-name">${escapeHtml(entry.name)}</span>
+      </div>
+      <span class="code-exp ${cls}">${text}</span>
+      <button class="admin-btn danger" onclick="deleteCode('${code}')">DELETAR</button>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function logout() {
+  sessionStorage.removeItem('shitbot_access');
+  document.getElementById('access-screen').style.display = 'flex';
+  document.getElementById('access-code-input').value = '';
+  document.getElementById('access-error').textContent = '';
+  document.getElementById('sidebar').classList.remove('open');
+}
+
+// Check if already has access this session
+function initAccessCheck() {
+  const granted = sessionStorage.getItem('shitbot_access');
+  if (granted) {
+    const codes = getAccessCodes();
+    if (codes[granted] && isCodeValid(codes[granted])) {
+      document.getElementById('access-screen').style.display = 'none';
+      return;
+    }
+    sessionStorage.removeItem('shitbot_access');
+  }
+}
+
+// ── INIT ───────────────────────────────────────────────
+initAccessCheck();
+renderSidebar();
+</script>
+</body>
+</html>
